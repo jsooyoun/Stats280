@@ -1,0 +1,284 @@
+---
+jupyter:
+  jupytext:
+    formats: ipynb,Rmd
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.14.1
+  kernelspec:
+    display_name: R
+    language: R
+    name: ir
+---
+
+# Lab 7
+
+
+## Estimating a Probability via Simulation -- Example 1
+
+In this part of the lab, we will use computer simulation to estimate a probability.
+
+Suppose there are two boxes, A and B.  Box A contains tickets {1,2,3,4,5} and box B contains tickets {1,3,5}.  Let $X$ be a random draw from $A$ and $Y$ be a random draw from B.  Let $Z = X + Y$.  What is the probability that $Z$ is equal to 5, 6, or 7?  
+
+We will answer this question in two ways: (1) Exactly, by enumerating all possible outcomes; and (2) by computer simulation.
+```{r}
+a = c(1, 1, 2, 4, 5)
+sample(a, 1, replace = TRUE)
+```
+
+
+
+### Exact calculation
+
+Calculate the exact probability that $Z$ is equal to 5, 6, or 7.  Hint: there are a total of $5\times 3 = 15$ possible outcomes.  
+
+
+**Answer**:
+
+```{r}
+## Write your code here
+record = c()
+A = c(1,2,3,4,5)
+B = c(1,3,5)
+for (i in A) {
+  for (j in B) {
+    record = c(record, i+j)
+  }
+}
+sum(record == 5 | record == 6 | record == 7)
+```
+
+### Computer Simulation
+
+You will now write code to find the probability using computer simulation.
+
+
+#### Step 1: Simple simulation
+
+Using the `sample` command, write code that generates a random number X, a random number Y, and the sum Z.  Then print Z.  
+
+```{r}
+## Write your code here
+  X = sample(A,1)
+  Y = sample(B,1)
+  Z = X + Y
+  print (Z)
+```
+
+#### Step 2: Repeating the simulation
+
+Now create a for loop that runs the above code 100 times (and prints Z each time).  (Note: you will want to copy and paste your above code into a for loop.)
+
+```{r}
+## Write your code here
+for (i in 1:100) {
+  X = sample(A,1)
+  Y = sample(B,1)
+  Z = X + Y ##Zs are independent
+  print (Z)
+}
+```
+
+#### Step 3: Counting the times Z equals 5, 6, or 7.
+
+Copy and paste your above code but remove the print function and increase the number of repetitions in the for loop from 100 to 10000.  Then, add a few lines that will count the number of times Z equals 5, 6, or 7.  Specifically, as the very first line, create a variable called count and set it equal to zero.  Then, inside the for loop, add an `if` statement that checks whether Z is equal to 5, 6, or 7 and, if so, increments the count variable by 1.
+
+Then, at the end of the code, create a variable called `estimated_probability` that is equal to `count / 10000`, and then print it. 
+
+```{r}
+## Write your code here
+count = 0
+for (i in 1:10000) {
+  X = sample(A, 1)
+  Y = sample(B,1)
+  Z = X + Y
+  if (Z == 5 | Z == 6 | Z == 7) {
+    count = count+1
+  }
+}
+count/10000
+```
+
+## Estimating a Probability via Simulation -- Example 2
+
+This part of the lab is similar to the preceding part, although the example is slightly different, and you will complete it on your own.
+
+Suppose there are two boxes, A and B.  Box A contains tickets {-2, -1, 0, 1, 2}, box B contains tickets {-1,2}, and box C contains tickets {0, 1}.  Let $X$ be a random draw from $A$ and $Y$ be a random draw from B and $Z$ be a random draw from C.  Let $U = XY + Z$.  What is the probability that $U$ is equal to 0?  
+
+We will answer this question in two ways: (1) Exactly, by enumerating all possible outcomes; and (2) by computer simulation.
+
+
+### Exact calculation
+
+Calculate the exact probability that $U$ is equal to 0.  
+
+```{r}
+## Write your code here
+A = c(-2, -1, 0, 1,2)
+B = c(-1, 2)
+C = c(0,1)
+record = c()
+for (i in A) {
+  for (j in B) {
+    for (k in C) {
+      record = c(record, i + j + k)
+    }
+  }
+}
+print (record)
+```
+
+
+**Answer**:
+
+<< Type your answer here >>
+
+
+### Computer Simulation
+
+You will now write code to find the probability using computer simulation.
+
+
+#### Step 1: Simple simulation
+
+Using the `sample` command, write code that generates a random number X, a random number Y, a random number Z, and the random number U.  Then print U.  
+
+```{r}
+## Write your code here
+count = 0
+for (i in 1:10000) {
+  X = sample(A, 1)
+  Y = sample(B,1)
+  Z = sample(C, 1)
+  if (Z == X + Y) {
+    count = count+1
+  }
+}
+count/10000
+```
+
+
+#### Step 2: Repeating the simulation
+
+Now create a for loop that runs the above code 100 times (and prints U each time).  
+
+```{r}
+## Write your code here
+
+count = 0
+for (i in 1:100) {
+  X = sample(A, 1)
+  Y = sample(B,1)
+  Z = sample(C, 1)
+  if (Z == X + Y) {
+    count = count+1
+  }
+}
+count/100
+```
+
+#### Step 3: Counting the times Z equals 5, 6, or 7.
+
+Copy and paste your above code but remove the print function and increase the number of repetitions in the for loop from 100 to 10000.  Then, add a few lines that will count the number of times U equals 0, and divide this by 10000 to estimate the probability that U equals 0.  
+
+## Review Exercises
+
+**These do not need to be completed as part of the lab.**
+
+The review exercises are for additional practice.  They may appear on exams, or on homework assignments.  But it is not necessary to complete them as part of the lab assignment.
+
+
+1\. Consider the following code.  What is the probability the output is TRUE?
+
+```{r}
+box1 = c(3,5,7)
+box2 = c(-1,1)
+x = sample(box1, 1)
+y = sample(box2, 1)
+print(x+y == 6)
+```
+
+2\. Consider the following code.  The output will be approximately equal to what number?
+
+```{r}
+box1 = c(3,5,7)
+box2 = c(-1,1)
+count = 0
+for (i in 1:10000)
+    {
+    x = sample(box1, 1)
+    y = sample(box2, 1)
+    if (x+y == 6) count = count + 1
+}
+print(count / 10000)
+```
+
+3\. Consider again the code in problem 2.  Every time you run the code, you will get a slightly different answer.  Typically, about how far off will the output of the code be from the answer you gave for problem 2?
+
+```{r}
+## Write your code here
+prob = c()
+for (i in 1:100) {
+count = 0
+for (i in 1:100) {
+    x = sample(box1, 1)
+    y = sample(box2, 1)
+    if (x+y == 6) count = count + 1
+}
+ prob[i] = count / 100
+}
+ prob
+```
+
+```{r}
+## Write your code here
+var <- function(x) {
+return (mean((x-mean(x))^2))
+}
+var(prob)
+```
+
+4\. Consider the following code.  The output will be approximately equal to what number?
+
+```{r}
+box1 = c(3,5,7)
+box2 = c(-1,0,1)
+count = 0
+for (i in 1:10000)
+    {
+    x = sample(box1, 1)
+    y = sample(box2, 1)
+    if (x*y < 4) count = count + 1
+}
+print(count / 10000)
+```
+
+5\. Consider again the code in problem 4.  Every time you run the code, you will get a slightly different answer.  Typically, about how far off will the output of the code be from the answer you gave for problem 4?
+
+
+6\. Consider the following code.  The output will be approximately equal to what number?
+
+```{r}
+box1 = c(3,5,7)
+box2 = c(-1,1)
+not_really_a_count = 0
+for (i in 1:10000)
+    {
+    x = sample(box1, 1)
+    y = sample(box2, 1)
+    if (x+y == 6) not_really_a_count = not_really_a_count + 1
+    if (x+y == 8) not_really_a_count = not_really_a_count + 2
+}
+print(not_really_a_count / 10000)
+```
+
+```{r}
+qnorm(0.001, 0, 1, lower.tail=FALSE)
+```
+
+```{r}
+print(die_rolls)
+```
+
