@@ -1,0 +1,256 @@
+---
+jupyter:
+  jupytext:
+    formats: ipynb,Rmd
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.14.1
+  kernelspec:
+    display_name: R
+    language: R
+    name: ir
+---
+
+# Lab 10
+
+
+## Kangaroos, One More Time
+- Some scientists claimed that a vitamin supplement helps kangaroos learn to run a special maze with high walls.
+- They divided $20$ kangaroos up into $10$ pairs to test whether this is true. 
+- They select one kangaroo in each pair at random to receive the vitamin supplement and feed the other is fed a normal diet.  
+- They time the kangaroos as they learn to run the maze.  
+- The treated kangaroo learns to run the maze more quickly than its untreated partner in $9$ of the $10$ pairs.
+
+
+## Data
+It turns out that we also know how long it took each of the kangaroos to run the maze. See the data below.
+
+```{r}
+load("kangaroos.rda")
+kangaroos
+```
+
+- Each row of the data set represents a pair of kangaroos, represented as A and B.
+- The scientists decided which animal got the vitamin treatment in each pair by flipping a coin.
+  - If the coin landed heads, A got the treatment.
+  - If the coin landed tails, B got the treatment.
+- Column 2 (treated) indicates the camel that received treatment.
+  - The coin landed heads in pair 3, so A got treatment.  
+  - The coin landed tails in pair 8, so B got treatment.
+- The scientists then recorded the time to complete the maze, in seconds.
+  - Column 3 (A.time) indicates how long it took A to complete the maze
+  - Column 4 (B.time) indicates how long it took B to complete the maze
+  - Treated kangaroo B in pair 7 took $54$ seconds to complete the maze, while control kangaroo A (who was not treated) took $60$ seconds.
+
+
+
+## Test Statistics
+- A **test statistic** is some number that you compute from the data, that helps you determine whether the null hypothesis seems plausible.  
+
+- The test statistic that we used in class was the number of times the treated animal was faster. 
+- This number turned out to be $9$ out of $10$ pairs. 
+- Our **null hypothesis** $H_0$ was that the vitamin had no effect on the time to run the maze.
+- If the null hypothesis were true, we would expect that the treated animal would be faster in roughly $50\%$ of the pairs.
+- We used the binomial distribution to calculate the chance of getting $9$ or more pairs where the treatment animal was faster assuming the null hypothesis.
+- This probability was roughly $1\%$, and so we would **reject the null hypothesis at the $0.05$ significance level**.  
+
+## Another Test Statistic
+- Another example of a test statistic, that we did not consider in class but will consider in this lab, is the difference in average times to complete the maze between the treated and control kangaroos. 
+- This test statistic gives more detailed information than the previous test statistic in that it indicates how much faster the treated kangaroos are.
+- What does the test statistic tell us?
+  - If the treated kangaroos are faster than the control kangaroos, then the test statistic will be negative.
+  - If the control kangaroos are faster than the treated kangaroos, then the test statistic will be positive.
+  - If the times are the same for the two groups, then the test statistic will be 0.
+- How would we rephrase the null hypothesis using this test statistic?
+
+## Calculating the Test Statistic
+- Let's create new variables (columns) in the data set to indicate the times for the treated and control kangaroos.
+```{r}
+kangaroos$treated.time=ifelse(kangaroos$treated=="A",kangaroos$A.time,kangaroos$B.time)
+kangaroos$control.time=ifelse(kangaroos$treated=="A",kangaroos$B.time,kangaroos$A.time)
+kangaroos
+```
+
+- Let's look at summary statistics for the treated and control times.
+```{r}
+summary(kangaroos$treated.time)
+summary(kangaroos$control.time)
+```
+
+- The treated kangaroos appear to be faster, but is the difference statistically significant?
+- Let's run a hypothesis test based on the methods we've talked about in class. 
+- We are going to run what's called a **one-sided test**, because we are only interested in the tail where the treated animals are faster than control.
+- This corresponds to the left tail, and the R command `pnorm` gives the left tail.
+```{r}
+treatment.mean = mean(kangaroos$treated.time)
+control.mean = mean(kangaroos$control.time)
+treatment.sd = sd(kangaroos$treated.time)
+control.sd = sd(kangaroos$control.time)
+treatment.se = treatment.sd/sqrt(10)
+control.se = control.sd/sqrt(10)
+test.statistic = ((treatment.mean-control.mean)-0)/sqrt(treatment.se^2+control.se^2)
+#The test statistic and P-value
+print(c(test.statistic,pnorm(test.statistic)))
+```
+
+- We would reject the null hypothesis at the $0.05$ significance level.
+- This test statistic provides more evidence against the null hypothesis than the number of pairs that are faster.
+
+```{r}
+
+```
+## The Easy Way to Perform the Hypothesis Test
+- It turns out that we don't have to do all this work to perform this hypothesis test. 
+- The R command `t.test` will perform the test for us.
+- The results will be slightly different than the results we got above since it is based on the t-distribution and not the normal distribution.
+  - The t-distribution has wider tails, which reflect the additional uncertainty we have because we do not know the actual standard deviations and standard errors.
+  - The t-distribution is more correct here because of the small sample size of $10$ kangaroos in each group.
+- We specify the treated and control times as the first and second inputs to the function.
+- We use the option `alternative="less"` because we are only interested in the left tail.
+- The default `alternative="two.sided"` includes both tails.
+- The R command `?t.test` gives more information about the t-test.
+- This test is an **independent samples t-test** or **two sample t-test**.
+```{r}
+t.test(kangaroos$treated.time,kangaroos$control.time,alternative="less")
+```  
+
+- Note that the test statistic is identical to the test statistic that we calculated, but the P-value is somewhat larger.
+- This reflects the additional uncertainty as represented by the t-distribution.
+- We would still reject the null hypothesis at the $0.05$ level.
+- The test results are more convincing than the results using the number of pairs that are faster.
+
+## A Flawed Procedure
+- The procedure that we just used has a fundamental flaw.
+- What's the flaw?
+- We used a two box model in our procedure, assuming that the samples are independent.
+- The scientists divided the kangaroos into pairs, however, with the idea that the two kangaroos in a pair have the same age, sex, and other characteristics. 
+- We are ignoring an important piece of information, the pairing, when we pretend that the samples are independent.
+- We have a good one box model, however, for this data.
+- We can think of a box with two numbers on each ticket.
+  - The first number is the time for the treatment kangaroos.
+  - The second number is for the corresponding control kangaroos.
+- We can now take the difference between two numbers on the ticket.
+- The null hypothesis is that average difference between the two numbers is $0$.
+- The standard error for the average difference will be smaller than in the two box model if there is a positive correlation between the times for the two kangaroos:
+$$SE(X-Y)=\sqrt{SE^2(X)+SE^2(Y)-2Cov(X,Y)}$$
+
+- Let's perform the new hypothesis test by hand
+
+```{r}
+kangaroos$diff = kangaroos$treated.time-kangaroos$control.time
+diff.mean = mean(kangaroos$diff)
+diff.sd = sd(kangaroos$diff)
+diff.se = diff.sd/sqrt(10)
+test.statistic = (diff.mean-0)/diff.se
+#The test statistic and P-value
+print(c(test.statistic,pnorm(test.statistic)))
+```
+
+- Adding the pairing information allows us to make a stronger case that the vitamin reduces the time through the maze.
+
+- We can also run this hypothesis test in R with a single command.
+- This is a **paired t-test**.
+- The option `paired=TRUE` designates the pairing.
+
+```{r}
+t.test(kangaroos$treated.time,kangaroos$control.time,alternative="less", paired=TRUE)
+```  
+
+## Review Exercises
+
+**These do not need to be completed as part of the lab.**
+
+1a) Consider the mtcars data set from the previous lab. Is the gas mileage (mpg) of $4$ cylinder cars significantly different than the gas mileage of $6$ or $8$ cylinder cars? Run the hypothesis test both by hand and using `t.test`. Use a significance threshold of $0.05$. Note that the code below will extract the $4$ cylinder and $6$ or more cylinder cars from mtcars into vectors fourcyl.mpg and more.mpg.
+```{r}
+data(mtcars)
+fourcyl = subset(mtcars, cyl==4)
+morecyl = subset(mtcars, cyl>4)
+fourcyl.mpg = fourcyl$mpg
+more.mpg = morecyl$mpg
+```
+
+1b) Calculate an approximate $95\%$ confidence interval for the difference in mean gas mileage between $4$ cylinder and $6$ or $8$ cylinder cars. (Hint: You know the expected value and SE for the difference. You can then calculate the confidence interval the same way as before). 
+
+1c) What do you notice about the lower and upper limits of the confidence interval? 
+
+1d) What do you think is the relationship between the confidence interval and the P-value?
+
+1e) How does the confidence interval compare to the confidence interval given by `t.test`?
+
+2a) A researcher is testing a weight loss drug on $15$ men ages $18-44$. The table gives the weights of the participants both before and after taking the drug. Would you conclude that the men lost weight on the weight-loss drug? Use a significance threshold of $0.025$. Run the hypothesis test both by hand and using `t.test`.
+
+2b) What is the 95% confidence interval for the weight loss from `t.test`?
+
+|ID|Before|After|
+|-:|-:|-:|
+|1|187|186|
+|2|172|175|
+|3|168|171|
+|4|200|193|
+|5|258|261|
+|6|134|141|
+|7|213|217|
+|8|201|195|
+|9|125|112|
+|10|206|214|
+|11|142|130|
+|12|142|141|
+|13|152|172|
+|14|179|174|
+|15|139|144|
+
+3a) (Extra credit) The tests we've discussed so far are **parametric** tests because they make assumptions about the distribution of the underlying variable. The t-test, in particular, assumes that the sample mean is normally distributed. A **non-parametric** test does not, however, make assumptions about the distribution of the underlying variable. This question presents a type of non-parametric test called a **permutation test**. Consider the data with the cars. If the gas mileage isn't different for the two types of cars, then we can randomly assign cars to the two groups and get a similar difference in gas mileage to the actual gas mileage difference that we see. The permutation test works as follows. Note that there are $11$ $4$ cylinder cars and $21$ $6$ and $8$ cylinder cars in the data set. 
+
+- Combine the gas mileages into a single group
+- Repeat many (at least $10,000$) times
+  - Randomly pick $11$ gas mileages from the $32$ values in the group. These will be the gas mileages for the "4 cylinder" cars.
+  - The other gas mileages in the group will be for the "6 and 8 cylinder" cars.
+  - Calculate and store the difference in means between the "4 cylinder" and "6 and 8 cylinder" cars.
+- Determine the percentage of values that you've stored that are larger than the actual difference in mpg that you observed. If this percentage is $0\%$, then estimate this value as $0.000005$. This is your estimate of the one-sided P-value, with the alternative hypothesis being that the mean mpg is higher for $4$ cylinder cars than for $6$ or $8$ cylinder cars. 
+
+3b) (Extra credit) How does this P-value compare to the P-value from `t.test` with `fourcyl.mpg` as the first input and `alternative="greater"`?
+
+
+```{r}
+data("mtcars")
+```
+
+```{r}
+m = mean(mtcars$wt)
+sd = sd(mtcars$wt)
+se = sd/sqrt((length(mtcars$wt)))
+z = 1.645
+ci = c(m-se*z, m+se*z)
+print (ci)
+```
+
+```{r}
+confint(lm(wt ~ 1, data = mtcars), level = 0.9)
+```
+
+```{r}
+m = mean(mtcars$wt)
+sd = sd(mtcars$wr)
+se = sd/sqrt((length(mtcars$wt)))
+x = m + 1.645 * se
+print(x)
+```
+
+```{r}
+a = c()
+count = 0
+population = c(344, 351, 377, 405, 410, 426, 429, 429, 429, 432, 434, 438, 448, 451, 451, 451, 455, 458, 462, 467, 468, 468, 468, 497, 508)
+for (i in 1:1000000) {
+a = sample (population, 3, replace = FALSE) 
+if (mean(a) < 357) {
+  count = count+1
+}
+}
+print(count/1000000)
+```
+
+```{r}
+dt(10, 2, 5.5, log = FALSE)
+```

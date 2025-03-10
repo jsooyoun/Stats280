@@ -1,0 +1,248 @@
+---
+title: "STATS 280 Lab 9 Solutions"
+author: "Jianfei Wang and Vincenzo Loffredo"
+date: "2023-03-22"
+output: html_document
+---
+
+
+# Confidence Intervals
+
+Confidence intervals are a statistic (function of the data) used to gauge uncertainty about an estimate.
+In frequentist statistics the assumption is that there exists a true parameter $\mu$ that we are trying to estimate using the data $X$ and a statistics $T(X)$, like the mean or the standard deviation of the data.
+
+A confidence interval is an interval that contains the population parameter with a certain level of confidence ($\alpha$), and generally takes the form:
+\begin{align}
+CI_{\alpha}(X) & = \text{(point estimate)} +/- \text{(critical value)*(standard error)}.
+\end{align}
+Therefore a confidence interval is a function of the sample, and for each sample we will get a different CI.
+
+Whenever we can use the Normal approximation (Central Limit Theorem and adjecent results), we can use the  critical value formulation:
+
+\begin{align}
+CI_{\alpha}(X) & = \text{(point estimate)} +/- z_{\alpha/2}*\text{(standard error)},
+\end{align}
+
+where $z_{\alpha/2}$ is the critical value from the standard normal distribution.
+
+
+## Box Model Applications
+
+### Theory Exercise
+
+Consider a sample of size $1600$ from a box.
+The mean of the sample is $100$ and its standard deviation is 20.
+Build a $75\%$ confidence interval for the mean of the box.
+
+### Coding
+
+```{r}
+# hint: to get the critical value of for 95% confidence interval with normal approximation
+# crit = qnorm(0.05/2, 0, 1, lower.tail = F)
+
+```
+
+### Solutions
+```{r}
+crit = qnorm( (1-0.75)/2, 0, 1, lower.tail = F)
+n_mean = 100
+ste = 20/sqrt(1600)
+CI2 = c(n_mean - crit*ste, n_mean + crit*ste)
+```
+
+### Theory Exercise
+
+Suppose a $0-1$ box contains $2000$ tickets. 
+A researcher samples $200$ tickets from the box with replacement and the sample has a mean of $0.75$ and a standard deviation of $0.4341$.
+What is the $95\%$ confidence interval for mean of the box?
+
+### Coding Exercise
+
+Build a simulation to take a sample of size $200$ with replacement from the box and compute the confidence interval for the mean.
+Suppose the $0-1$ box contains $500$ '0' tickets and $1500$ '1'. 
+
+```{r}
+# hint: the rep(a,b) command outputs a vector which repeats a for b number of times.
+
+# build up the box
+box = c (rep(0, 500), rep(1, 1500))
+s = sample (box, 200, replace = T) 
+s_mean = mean(s)
+s_sd = sd(s)
+ste = s_sd / sqrt(200)
+CI = c(s_mean - 2*ste, s_mean + 2*ste)
+
+# sample from the box
+# s = sample (box, 200, replace = T) 
+ 
+# Compute the sample mean and the sample standard deviation 
+# s_mean =  mean(s)
+# s_sd = sd(s)
+#ste = s_sd / sqrt(200)
+  
+# build up the 95% confidence interval with the sample mean and standard error
+# CI = 
+```
+
+### Solutions
+
+```{r}
+set.seed(1)
+box = c(rep(0,500),rep(1,1500))
+s = sample(box, 200, replace = F)
+s_mean = mean(s)
+s_sd = sd(s)
+CI = c(s_mean - 2*ste, s_mean + 2*ste)
+```
+
+
+
+## Using Linear Regression for Confidence Intervals
+
+We use a built-in dataset called mtcars, with data from cars in the 70s.
+
+```{r}
+# import the mtcars dataset
+data("mtcars")
+summary(mtcars)
+
+```
+
+We have seen how to run a linear model for simple linear regression in the previous labs, and now we are going to show how to  use the `lm()` function to compute confidence intervals for a specific variable.
+
+If we want to compute the confidence interval for the mean of one variable, say the miles per gallon, we can write
+
+```{r}
+mod = lm(formula = mpg ~1, data = mtcars)
+summary(mod)
+```
+
+In this code:
+
+- lm is the function used to create a linear model.
+- The argument data is used to specify the dataset from which the variable names (mpg in our case) are taken from.
+- Formula gives the formula of the model: the first variable is the variable of interest (Y), while the ones on the other side of the `~` are the covariates used in the model.
+- Using only $1$ as a covariate means to only have an intercept, this means to just estimate the mean of the variable.
+
+
+The most straightforward way to get a confidence interval for the coefficients of a linear model is `confint()`, a function that takes as arguments a linear model and a level $\alpha$. 
+In our case, we have only the intercept, so the coefficient for the intercept is going to be the mean of the variable.
+
+If not specified, $\alpha=0.05$, so the confidence interval will be at $95\%$.
+
+```{r}
+confint(object = mod , level = 0.95)
+```
+
+This interval is going to be slightly different than the one obtained using the Normal approximation.
+To see the difference, we can calculate by hand the confidence interval with normal approximation as follows:
+
+```{r}
+mean = mean(mtcars$mpg)
+n = nrow(mtcars)
+sd = sd(mtcars$mpg) #Don't worry here about the distinction between sd as calculated by R and sd as calculated in class.
+se = sd(mtcars$mpg)/sqrt(n)
+print(c(mean - 2*se,mean+2*se))
+```
+
+The confidence interval results are different since R uses Student's t distribution to get the critical value.
+
+Long story short, when having low sample size, the sample standard deviation as the estimate of population standard deviation is adds more uncertainty. 
+
+The t-distribution is basically a Normal distribution with heavier tails to  account for this additional uncertainty.
+The way we build a confidence interval stays the same, but we don't use the Normal distribution for critical values, but the T distribution.
+
+As the sample size increases, the t distribution approaches a standard normal distribution, and so do the critical values, making the confidence interval grow closer.
+We will learn more about T-distributions in the following labs, but this was just a sneak peak.
+
+We can use this model formulation also for our previous box:
+
+```{r}
+mod = lm(s ~1)
+# R - using T distribution
+confint(mod)
+# Manual (normal approximation)
+es = coef(summary(mod))[1,1]
+se = coef(summary(mod))[1,2]
+c(es - 2*se, es+2*se)
+```
+As you can see, with a higher sample size, the two confidence intervals are much closer.
+
+
+## Coverage proability
+
+Coverage is the percentage of time that the confidence interval contains the true value of the population parameter. 
+If we construct 95% confidence intervals from many random samples, the coverage should be roughly 95%. 
+Sometimes confidence intervals could be calculated with different methods, we can use coverage to review their performances. 
+
+### Coding Exercise 
+
+Suppose we still have the 01 box that contains 2000 tickets, 500 of which are 0 and 1500 of which are 1. We sample 200 tickets. What is the coverage of confidence intervals by using normal approximation if we repeat the simulations for 1000 times?
+
+
+```{r}
+# hint: run the above simulations for 1000 times, create lower bound and upper bound vectors of confidence interval for 1000 iterations.
+
+
+# build up the box
+box = c(rep(0, 500), rep (1, 1500))
+s = sample(box, 200, replace = T)
+# Compute mean of the box
+mu = mean(box)
+
+# Create a storage vector for how many times the mean is in the confidence interval
+count = 0
+
+# Start the loop
+for(i in 1:1000){
+s = sample(box, 200, replace = TRUE)
+avg = mean(s)
+stdv = sd(s)
+ste = stdv/sqrt(200)
+lower = avg - 2 * ste
+upper = avg + 2 * ste
+if (lower <= mu & mu <= upper) {
+  count = count + 1
+}
+}
+print (count/1000)
+
+```
+
+
+### Solutions (Alternative approach)
+```{r}
+set.seed(1)
+mu= mean(box)
+lower = c()
+upper = c()
+for (i in 1:1000){
+  samples = sample(box, 200, replace = F)
+  m = mean(samples)
+  s = sd(samples)
+  ste = sqrt((2000-200)/(2000-1)) * s / sqrt(200)
+  lower[i] = m - 2*ste
+  upper[i] = m + 2*ste
+}
+mean(lower <= mu & mu <= upper)
+```
+
+
+```{r}
+data("mtcars")
+```
+
+```{r}
+m = mean(mtcars$wt)
+print(m)
+sd = sd(mtcars$wt)
+se = sd/sqrt((length(mtcars$wt)))
+z = 1.645
+ci = c(m-se*z, m+se*z)
+print (ci)
+```
+
+```{r}
+
+```
+

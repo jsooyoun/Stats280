@@ -1,0 +1,552 @@
+---
+title: "STATS 280 Lab 6"
+author: "Jianfei Wang and Vincenzo Loffredo"
+date: "2023-02-15"
+output: html_document
+---
+
+# Lab 6
+
+## Factorials and Combinations
+
+Factorials and Combinations play an important role when computing probabilities of events with and without replacements. They are used in many areas of statistics.
+
+The definition of factorial is
+\begin{align}
+X! = \prod_{i=1}^X i,\qquad i\in N.
+\end{align}
+
+It's simply a product of the first $X$ integers.
+
+Write a function called fac that calculates the factorial of a number. Return a value of $1$ if $n=0$ and NA if $n<0$. Note that you will need to have two if conditions to handle these cases.
+
+```{r}
+#Hint : starts with a baseline variable that multiplies from 1 to the number itself using loops.
+fac <- function(n){
+  if (n < 0) {
+    stop('input is not valid')
+  } else if ( n == 0) {
+    return (1)
+  } else {
+    product = 1
+    for (i in 1:n) {
+      product = product * i
+    }
+    return(product)
+    }
+  }
+
+```
+
+
+
+Write a function called chos that calculates n choose k based on the fac function.
+This function should have if conditions for the case of $k<0$ and $n<k$.
+```{r}
+chos <- function(n,k){
+  if (n<0 || k<0 || n<k) {
+    stop('input is not valid')
+  } 
+  return(fac(n)/(fac(k)*fac(n-k)))
+}
+```
+
+
+In R, n choose k and factorial could be calculated by using the in-built functions choose and factorial
+
+```{r}
+choose(8,2)
+factorial(4)
+```
+
+You can double check that your functions work
+```{r check}
+chos(8,2)
+fac(4)
+
+```
+
+## Binomial Distribution
+
+Now, we are going to discuss the binomial distribution.
+This distribution is used to model settings in which we repeat the exact same experiment $n$ times, we know that the probability of success for each try is $p$, and we want to know how likely a certain number $x$ of successes is.
+
+Looking at the distribution, we say that a discrete random variable $X$ follows the Binomial distribution with size $n$ and probability $p$ ($X\sim\mathcal{Bin}(n,p)$) if it's density is given by
+\begin{align}
+P(X=x) & = {n\choose x} p^x(1-p)^{n-x} \quad \forall x\in\{1,2,\dots,n\};\\
+& =0 \quad \text{otherwise},
+\end{align}
+where
+\begin{align}
+{n\choose x}& = \frac{n!}{x!(n-x)!}.
+\end{align}
+
+When sampling from a distribution, in R the syntax is is always the same:
+
+- `d` + name of the distribution = density.
+- `p` + name of the distribution = probability.
+- `q` + name of the distribution = quantile.
+- `r`` + name of the distribution = generate a sample from the distribution.
+
+
+For the Binomial, we use the `dbinom()` function to compute the binomial density.
+Let's consider 
+\begin{align}
+X&\sim Bin(7,0.3).
+\end{align}
+
+```{r dbinom}
+# Set seed for replicability
+set.seed(0210)
+# set the parameters
+N = 7; p = 0.3
+# Compute P(X=1)
+dbinom(1,size = N, prob = p)
+```
+
+### Exercise 1
+
+Create a function that computes the density of a Binomial distribution, with arguments $x$, $n$ and $p$.
+Your function should be able to detect improper inputs (impossible probabilities or number of successes, etc.), but you shouldn't worry of checking whether $x$ and $n$ are integers.
+Check your function by computing:
+
+- $P(X=1)$
+- $P(X=10)$
+- $P(X=-1)$
+
+and comparing the results with the built in function from R.
+
+
+```{r}
+denBinom <- function(x, n, p) {
+  if (p < 0 || p > 1 || x < 0 || x > n || n < 0) {
+    stop('error')
+  }
+  else {
+    bind = (chos(n,x)) * (p^x) * ((1-p)^(n-x))
+    return (bind)
+  }
+}
+
+denBinom (1, 7, 0.3)
+```
+
+### Probability of an Interval
+
+To compute the probability of an interval $[a,b]$, with $a\leq b; a,b\in N$, for a Binomial distribution, we use:
+\begin{align}
+P(X\in[a,b])& = \sum_{i=a}^bP(X=i)\\
+& = P(X\leq b)- P(X\leq a).
+\end{align}
+
+In R we can use `pbinom()` to compute this quantity:
+
+```{r pbinom}
+# Set seed for replicability
+set.seed(0210)
+# set the parameters
+N = 7; p = 0.3
+# Compute P(X in [2,4])
+pbinom(4,size = N, prob = p)-pbinom(1,N,p)
+```
+
+### Exercise 2
+
+Create a function that computes the probability of a Binomial distribution, with arguments $a$, $b$, $n$ and $p$.
+
+Your function should be able to detect improper inputs (impossible probabilities or number of successes, etc.), but you shouldn't worry of checking whether $a$, $b$ and $n$ are integers.
+Check your function by computing:
+
+- $P([1,3])$
+- $P([-1,2])$
+- $P([6,9])$
+
+and comparing the results with the built in function from R.
+
+
+```{r}
+
+cumu <- function(n, x, p){
+  s = 0
+  for (i in 0:x) {
+    s = s +db(n, i, p)
+  }
+  return (s)
+}
+```
+
+```{r}
+penBinom <- function(a, b, n, p) {
+  if (a == 0) {
+    return (cumu(n, b, p))
+  }
+  else {
+    return ((cumu(n, b, p)) - (cumu(n, a, p)))
+  }
+}
+```
+
+## Hyper Geometric Distribution
+
+In the Binomial distribution we assume that the chance of success is the same and we can repeat the experiment $N$ times in an identical way.
+In many situations, that is not the case: for example, the chance of drawing a card of a specific suit from a deck changes depending on how many cards we have drawn and what suits they are.
+In this setting, we have $N=m+n$ total possible iterations (i.e. the number of cards in a deck), an initial number of possible successes ($m = 13$ in $52$ in a deck) and we want to compute the probability of getting $x$ successes (cards of a particular suit) by drawing without replacement $k$ cards from the deck.
+For this type of problems, we use the Hypergeometric Distribution, where
+\begin{align}
+X&\sim HG(n+m,k)\\
+P(X= x) & = \frac{{m\choose x}{n\choose k-x}}{{(n+m)\choose k}}.
+\end{align}
+
+
+In R we compute it using
+
+```{r hyper}
+dhyper(x = 1,m = 13 ,n = 52-13,k = 1)
+```
+
+### Exercise 3
+
+Compute the following quantities for multiple draws without replacement from a deck of cards:
+
+- Probability of getting two 4s when drawing 10 cards.
+- Probability of getting 6 clubs when drawing 20 cards.
+- Probability of getting the seven of hearts when drawing 26 cards.
+
+
+```{r}
+prob_2_4s <- dhyper(2, 4, 48, 10)
+print(prob_2_4s)
+```
+
+### Hypergeometric related functions
+
+Binomial distribution calculates the probability of an event when you are sampling with replacement. Hypergeometric distribution calculates the probability of an event when you are sampling without replacement.
+
+There are 20 balls in an urn. 13 of them are red. 7 of them are black. Suppose you pick three balls randomly from the urn without replacement.
+
+What is the probability of having exactly 2 red balls?
+```{r}
+dhyper(1, 13, 7, 3)
+```
+
+In general, m is the number of success states in the population. n is the number of failure states in the population. k is the number of draws.
+
+What is the probability of having 1 red ball or less?
+
+```{r}
+1 - dhyper(1, 13, 7, 3)
+```
+
+What is the number of red balls that corresponds to the 40th percentile of the random variable?
+```{r}
+percentile_40 <- qhyper(0.40, 13, 7, 3)
+print(percentile_40)
+```
+
+Generate five random numbers from this distribution.
+```{r}
+rhyper(5, 13, 7, 3)
+```
+
+## Simulate a Discrete Random Variable
+
+The function `runif(n,a,b)` can be used to simulate random variables that are uniformly distributed between `a` and `b`.
+However, this construction can be used also to build discrete random variables.
+For example, let's consider:
+\begin{align}
+X & = 1 \qquad \text{with probability}\quad 0.2;\\
+ & = 2 \qquad \text{otherwise}.
+\end{align}
+
+We can use `runif(n,0,1)` to simulate $X$ in the following way:
+
+```{r sim dis}
+# Set seed for replicability
+set.seed(0210)
+# Select sample size
+N = 10
+# Create storage vector
+X = c()
+# Use a loop to sample X
+for(n in 1:N){
+  # Sample from the uniform
+  u = runif(1,0,1)
+  # Check whether u is below or above 0.2
+  if(u<= 0.2){
+    # Assign x to be 1
+    X[n] = 1
+  }else{
+    # Otherwise, X = 2
+    if(u<=1){
+      X[n] = 2
+    }
+  }
+}
+X
+
+#### Alternative method
+# Set seed for replicability
+set.seed(0210)
+# Select sample size
+N = 10
+# Create storage vector
+X = c()
+# Sample from the uniform
+u = runif(N,0,1)
+# Use a loop to sample X
+for(n in 1:N){
+  # Check whether u is below or above 0.2
+  if(u[n]<= 0.2){
+    # Assign x to be 1
+    X[n] = 1
+  }else{
+    # Otherwise, X = 2
+    if(u[n]<=1){
+      X[n] = 2
+    }
+  }
+}
+X
+
+# Finally, we can create our own function to sample a vector of any size from X
+samplex = function(N = N){
+  # Set seed for replicability
+set.seed(0210)
+ # Create storage vector
+X = c()
+# Sample from the uniform
+u = runif(N,0,1)
+# Use a loop to sample X
+for(n in 1:N){
+  # Check whether u is below or above 0.2
+  if(u[n]<= 0.2){
+    # Assign x to be 1
+    X[n] = 1
+  }else{
+    # Otherwise, X = 2
+    if(u[n]<=1){
+      X[n] = 2
+    }
+  }
+}
+return(X) 
+}
+samplex(N)
+```
+
+In the code described above we sampled $X$ by sampling the probability value between $[0,1]$ and assigning to all the values above $0.2$ the value 2 and to the ones below the value $2$.
+This is because in a uniform distribution  $\mathcal{U}([0,1])$, the probability $P(U\in[0,0.2])=0.2$ and $P(U\in[0.2,1])=0.8$, therefore representing the distribution of $X$.
+
+### Exercise 4
+
+We know that the estimate of the mean and SE for a random variable are more accurate as the sample size increases. Use the samplex function above inside a loop to create random samples of sizes 10 to 1,000 in steps of 10. Compute the mean and SE for each sample and create separate plots for the mean and for the SE. The x-axis in these plots should be the sample size and the y-axis the mean or SE for the sample. What do you notice in the plots? 
+
+
+```{r}
+m = c()
+s = c()
+vec = seq(10, 1000, 10)
+for (i in 1:length(vec)){
+  sam = samplex(vec[i])
+  m[i] = mean(sam)
+  s[i] = sqrt(mean((sam-mean(sam))^2))
+}
+plot(vec,s)
+```
+
+### Exercise 5
+
+Consider the random variable $Y$ described as follows:
+\begin{align}
+Y & = -5 \qquad \text{with probability}\quad 0.2;\\
+ & = 3 \qquad \text{with probability}\quad 0.1;\\
+ & = 8 \qquad \text{with probability}\quad 0.3;\\
+ & = -7 \qquad \text{with probability}\quad 0.4.
+\end{align}
+
+- Using the `runif(n,0,1)` method, simulate a vector of size $200$ from $Y$.
+- Compute the expectation and SD of Y.
+- Using for loops, create samples from $Y$ of sizes 10 to 1000 in steps of 10. Compute the mean and standard deviation of each sample and plot the mean and standard deviation as in the previous exercise.
+
+
+```{r}
+set.seed(123)  
+
+values <- c(-5, 3, 8, -7)
+probabilities <- c(0.2, 0.1, 0.3, 0.4)
+
+n_samples <- 200
+random_values <- runif(n_samples, 0, 1) 
+
+Y_simulated <- sapply(random_values, function(x) {
+  if (x < 0.2) {
+    return(-5)
+  } else if (x < 0.3) {
+    return(3)
+  } else if (x < 0.6) {
+    return(8)
+  } else {
+    return(-7)
+  }
+})
+
+head(Y_simulated)
+```
+
+```{r}
+A = c(1,2,3)
+B = c(1,2,3)
+C = c(1,2,3)
+S = c()
+X = c()
+sum = 0;
+count = 0
+count1 = 0
+# Let's sample from them
+for (j in 1:20){
+for (i in 1:3){
+X = sample(x = A, size = 1, replace = T, prob = NULL)
+Y = sample(x = B, size = 1, replace = T, prob = NULL)
+Z = sample(x = C, size = 1, replace = T, prob = NULL)
+# Compute Z
+sum = X+Y+Z
+  if(sum == 6) {
+     count1 = count + 1
+  }
+}
+print (count1)
+}
+
+```
+
+
+```{r}
+smean = function(b,n) {
+  x = sample(c(1,2,3),3,replace=TRUE)
+  return(mean(x))
+}  
+#Returns a vector of m sample means
+smeans = function(m,n,b) {
+  sampmeans = c() #Empty vector
+  for (i in 1:m) {
+    #Append new sample mean to sampmeans
+    sampmeans=c(sampmeans,smean(b,n))
+  }
+  return(sampmeans)
+}
+```
+
+```{r}
+# 0.2781632
+
+set.seed(12345)
+group1 = rnorm(1000000,68,3)
+group2 = rnorm(1000000,70,3)
+group3 = rnorm(1000000,72,3)
+country=c(group1,group2,group3)
+
+n = 150
+stderror = 0
+vect = 0
+avg = 0
+for (i in 1:10000) {
+stat = sample(country, n, replace = FALSE)
+stderror = sd(stat) / sqrt(n)
+vect = vect + stderror
+}
+avg = vect/10000
+print(avg)
+
+
+```
+
+```{r}
+set.seed(12345)
+group1 = rnorm(1000000,68,3)
+group2 = rnorm(1000000,70,3)
+group3 = rnorm(1000000,72,3)
+country=c(group1,group2,group3)
+
+storageB = c()
+for (i in 1:10000) {
+x = sample(c(1,2,3),1)
+if (x ==1) {
+a = sample(group1, 150, replace = FALSE)
+z = mean(a)
+storageB[i] = z
+}
+if (x ==2) {
+b = sample(group2, 150, replace = FALSE)
+z = mean(b)
+storageB[i] = z
+}
+if (x ==3) {
+c = sample(group3, 150, replace = FALSE)
+z = mean(c)
+storageB[i] = z}}
+y = sd(storageB)
+print(y)
+```
+
+```{r}
+
+set.seed(12345)
+group1 = rnorm(1000000,68,3)
+group2 = rnorm(1000000,70,3)
+group3 = rnorm(1000000,72,3)
+
+sterror = 0
+sum = 0
+avg = 0
+vect = c()
+
+for (i in 1:10000){
+totalsample = c()
+x = sample(group1, 50, replace = FALSE)
+y = sample(group2, 50, replace = FALSE)
+z = sample(group3, 50, replace = FALSE)
+totalsample = c(totalsample, x, y, z)
+sterror = sd(totalsample)/sqrt(150)
+vect = c(vect, sterror)
+}
+avg = mean(vect)
+print(avg)
+
+#0.2786452
+
+```
+
+```{r}
+set.seed(12345)
+group1 = rnorm(1000000,68,3)
+group2 = rnorm(1000000,70,3)
+group3 = rnorm(1000000,72,3)
+
+storageC = c()
+for (i in 1:10000){
+x = sample(group1, 50, replace = FALSE)
+y = sample(group2, 50, replace = FALSE)
+z = sample(group3, 50, replace = FALSE)
+total = c(x,y,z)
+z = mean(total)
+storageC[i] = z}
+y = sd(storageC)
+print(y)
+```
+
+```{r}
+
+set.seed(12345)
+group1 = rnorm(1000000,68,3)
+group2 = rnorm(1000000,70,3)
+group3 = rnorm(1000000,72,3)
+country=c(group1,group2,group3)
+
+storageA = c()
+for (i in 1:10000){
+x = sample(country, 150, replace = FALSE)
+z = mean(x)
+storageA[i] = z}
+y = sd(storageA)
+print(y)
+```
