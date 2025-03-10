@@ -1,6 +1,6 @@
 ---
 title: "STATS 280 Lab 6"
-author: "Jianfei Wang and Vincenzo Loffredo"
+author: "Jianfei Wang, Vincenzo Loffredo, Sooyoung Jo"
 date: "2023-02-15"
 output: html_document
 ---
