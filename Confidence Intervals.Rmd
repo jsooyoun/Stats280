@@ -1,6 +1,6 @@
 ---
-title: "STATS 280 Lab 9 Solutions"
-author: "Jianfei Wang and Vincenzo Loffredo"
+title: "STATS 280 Lab 9"
+author: "Jianfei Wang, Vincenzo Loffredo, Sooyoung Jo"
 date: "2023-03-22"
 output: html_document
 ---
